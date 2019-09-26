@@ -32,6 +32,7 @@ class ClientTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void getByIdFound() throws SQLException {
         Map<String, DbValue> resultSet = new HashMap<>();
         resultSet.put("id", new DbValue(DbFieldType.INTEGER, 1));
@@ -65,6 +66,7 @@ class ClientTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void getByNameFound() throws SQLException {
         Map<String, DbValue> resultSet = new HashMap<>();
         resultSet.put("id", new DbValue(DbFieldType.INTEGER, 1));
@@ -97,6 +99,7 @@ class ClientTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void createWithUniqueNameOK() throws SQLException, BusinessException {
         when(provider.select(any(), eq(Table.CLIENT.getTableName()), any())).thenReturn(Collections.emptyMap());
         when(provider.insert(any(), eq(Table.CLIENT.getTableName()), any())).thenReturn(1);

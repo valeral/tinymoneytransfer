@@ -36,6 +36,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void getByIdOK() throws SQLException {
         Map<String, DbValue> resultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
@@ -69,6 +70,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void getByClientFound() throws SQLException {
         Map<String, DbValue> resultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
@@ -102,6 +104,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void createOK() throws SQLException, BusinessException {
         Map<String, DbValue> clientResultSet = new HashMap<>();
         clientResultSet.put("id", new DbValue(DbFieldType.INTEGER, 1));
@@ -182,6 +185,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void updateAmountOK() throws SQLException, TransferException {
         Map<String, DbValue> resultSet = createResultSetForAccount(1, 2, 100, Currency.USD);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
@@ -237,6 +241,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void transferToExistingAccountOK() throws SQLException, TransferException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
@@ -283,6 +288,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void transferToNonExistingAccountFails() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
@@ -293,6 +299,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void transferWithDifferentCurrenciesFails() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         Map<String, DbValue> dstAccResultSet = createResultSetForAccount(2, 2, 100, Currency.EUR);
@@ -304,6 +311,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void transferWithSrcAccountUpdateError() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
@@ -318,6 +326,7 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void transferWithDstAccountUpdateError() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
