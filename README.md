@@ -22,6 +22,7 @@ All operations are done in parallel allowing multiple requests to the server at 
 
 ### Restrictions
 
+* no authentication
 * for the sake of simplicity one client can have only one account
 * all supported currecies for account: EUR, USD, RUB
 * all client/server communications are done using JSON object format
