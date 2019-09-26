@@ -98,7 +98,7 @@ Server starts on localhost at port ``8080``. Context root is ``/api``
 
 /transfers - transfer between 2 accounts
 
-## Operations paths
+## API paths
 ### /clients
 * POST - create new client using Client transport data
 ### /clients/{clientId}
