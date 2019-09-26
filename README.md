@@ -1,6 +1,15 @@
 # Tiny money transfer server
 
-RESTFull demo server simulates bank client and it's account and provides API for basic operations:
+## Technologies
+* Java 8
+* Jetty web-server 9.4.19
+* Jersey RESTful Web Services 2.29
+* H2 database 1.4.199 (embedded mode)
+* JUnit 5.5.0-M1
+* Mockito 2.15.0
+
+## Description
+RESTfull demo server simulates bank client and it's account and provides API for basic operations:
 * Add new client
 * View client's info
 * Open account for client
@@ -9,13 +18,14 @@ RESTFull demo server simulates bank client and it's account and provides API for
 * Withdraw from account
 * Transfer certain amount of money from one account to other client account
 
-All operations are done in parallel allowing multiple requests to server at the same time.
+All operations are done in parallel allowing multiple requests to the server at the same time.
 
 ### Restrictions
 
 * for the sake of simplicity one client can have only one account
 * all supported currecies for account: EUR, USD, RUB
 * all client/server communications are done using JSON object format
+* data stored in in-memory database and lost after server restart
 
 ### Transfer objects properties
 #### Client data
@@ -85,6 +95,7 @@ Server starts on localhost at port ``8080``. Context root is ``/api``
 
 ## Endpoints
 /clients - client and it's account opeartions
+
 /transfers - transfer between 2 accounts
 
 ## Operations paths
@@ -100,7 +111,7 @@ Server starts on localhost at port ``8080``. Context root is ``/api``
 ### /transfers
 * PUT - transfer money between accounts using Transfer transport data
 
-## Sample commands (using curl)
+## Usage (sample commands using curl)
 
 #### Create client
 ```
