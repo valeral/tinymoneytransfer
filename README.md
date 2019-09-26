@@ -31,7 +31,7 @@ All operations are done in parallel allowing multiple requests to server at the 
 * href - relative API path to account's info
 
 #### Debit/Withdraw data
-* amount - amount of money to debit (positive integer number) or withdraw (negative integer number) from account.
+* amountDiff - amount of money to debit (positive integer number) or withdraw (negative integer number) from account.
 
 #### Transfer data
 * srcAccountId - source account id to transfer money from
@@ -76,7 +76,67 @@ All operations are done in parallel allowing multiple requests to server at the 
 Not required
 
 ## Run
-`mvn package`
-`java -jar target/tinymoneytransfer-1.0.jar`
+```
+mvn package
+java -jar target/tinymoneytransfer-1.0.jar
+```
 
-Server starts on localhost at port 8080
+Server starts on localhost at port ``8080``. Context root is ``/api``
+
+## Endpoints
+/clients - client and it's account opeartions
+/transfers - transfer between 2 accounts
+
+## Operations paths
+### /clients
+* POST - create new client using Client transport data
+### /clients/{clientId}
+* GET - retrieve client info
+### /clients/{clientId}/account
+* POST - create new client account
+### /clients/{clientId}/account/{accountId}
+* GET - retrieve client account info
+* PUT - debit/withdraw from account using Debit/Withdraw transport data
+### /transfers
+* PUT - transfer money between accounts using Transfer transport data
+
+## Sample commands (using curl)
+
+#### Create client
+```
+curl -d '{"name": "Bob"}' -H "Content-Type: application/json" -H "Accept: application/json" -X POST http://localhost:8080/api/clients
+```
+Respond:
+````
+{"id":1,"name":"Bob","href":"/clients/1"}
+````
+#### Client info
+````
+ curl -q -H "Content-Type: application/json" -H "Accept: application/json" -X GET http://localhost:8080/api/clients/1
+````
+Respond:
+````
+{"id":1,"name":"Bob","href":"/clients/1"}
+````
+#### Open an account for client
+````
+curl -d '{"currency":"EUR"}' -H "Content-Type: application/json" -H "Accept: application/json" -X POST http://localhost:8080/api/clients/1/account
+````
+Respond:
+````
+{"id":1,"clientId":1,"currency":"EUR","amount":0,"href":"/clients/1/account/1"}
+````
+#### Debit account
+````
+curl -d '{"amountDiff":"100"}' -H "Content-Type: application/json" -H "Accept: application/json" -X PUT http://localhost:8080/api/clients/1/account/1
+````
+Respond
+````
+{"id":1,"clientId":1,"currency":"EUR","amount":100,"href":"/clients/1/account/1"}
+````
+#### Transfer between accounts
+````
+curl -d '{"srcAccountId":"1", "dstAccountId":"2", "amount":"50"}' -H "Content-Type: application/json" -H "Accept: application/json" -X POST http://localhost:8080/api/transfers
+````
+Respond:
+no content
