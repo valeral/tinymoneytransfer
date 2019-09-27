@@ -190,7 +190,9 @@ public class Account {
         Account account;
         // after lock is acquired data can differ from the one in current object
         if (needLock) {
-            account = Account.lockById(getId());
+            synchronized (TRANSFER_LOCK_OBJECT) {
+                account = Account.lockById(getId());
+            }
         } else {
             account = this;
         }
