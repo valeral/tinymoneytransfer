@@ -81,7 +81,7 @@ public class ClientsAccountResourceIT extends ITTestBase {
     public void accountInfoOK() {
         TAccount createdAccount = createAccountForNewClient(Currency.USD.toString());
         //use "href" from created instance
-        Invocation.Builder builder = webTarget.path(createdAccount.getHref()).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(createdAccount.getHref()).request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
 
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus(), "Wrong response status");
@@ -96,7 +96,7 @@ public class ClientsAccountResourceIT extends ITTestBase {
     @Test
     public void accountInfoForUnknownClientReturnError() {
         TAccount account = createAccountForNewClient(Currency.RUB.toString());
-        Invocation.Builder builder = webTarget.path(createURLForClientAccount(666, account.getId())).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(createURLForClientAccount(666, account.getId())).request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
 
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus(), "Wrong response status");
@@ -107,7 +107,7 @@ public class ClientsAccountResourceIT extends ITTestBase {
     @Test
     public void accountInfoForNonexistentAccountReturnError() {
         TAccount account = createAccountForNewClient(Currency.RUB.toString());
-        Invocation.Builder builder = webTarget.path(createURLForClientAccount(account.getClientId(), 666)).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(createURLForClientAccount(account.getClientId(), 666)).request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
 
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus(), "Wrong response status");

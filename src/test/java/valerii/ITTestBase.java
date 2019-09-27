@@ -30,7 +30,7 @@ public class ITTestBase {
     private static final String ENDPOINT_ROOT = "http://localhost:9999/api";
 
     private static Server server;
-    static WebTarget webTarget = ClientBuilder.newClient().target(ENDPOINT_ROOT);
+    static ThreadLocal<WebTarget> webTarget = ThreadLocal.withInitial(() -> ClientBuilder.newClient().target(ENDPOINT_ROOT));
 
     @BeforeAll
     public static void startServer() throws Exception {
@@ -48,12 +48,12 @@ public class ITTestBase {
     }
 
     Response postNewClient(String name) {
-        Invocation.Builder builder = webTarget.path(ENDPOINT_CLIENTS).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(ENDPOINT_CLIENTS).request(MediaType.APPLICATION_JSON);
         return builder.post(Entity.json(new TClient(name)));
     }
 
     Response postNewAccount(int clientId, String currency) {
-        Invocation.Builder builder = webTarget.path(ENDPOINT_CLIENTS + "/" + clientId + "/account").request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(ENDPOINT_CLIENTS + "/" + clientId + "/account").request(MediaType.APPLICATION_JSON);
         return builder.post(Entity.json(new TAccount(clientId, currency)));
     }
 
@@ -62,7 +62,7 @@ public class ITTestBase {
     }
 
     Response postDebitWithdrawAccount(int clientId, int accountId, Integer amount) {
-        Invocation.Builder builder = webTarget.path(createURLForClientAccount(clientId, accountId)).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(createURLForClientAccount(clientId, accountId)).request(MediaType.APPLICATION_JSON);
         return builder.put(Entity.json(new TDebitWithdraw(amount)));
     }
 
@@ -70,11 +70,12 @@ public class ITTestBase {
         Response clientResponse = postNewClient(createUniqueName());
         TClient client = clientResponse.readEntity(TClient.class);
         Response accountResponse = postNewAccount(client.getId(), currency);
+        assertEquals(Response.Status.CREATED.getStatusCode(), accountResponse.getStatus());
         return accountResponse.readEntity(TAccount.class);
     }
 
     TAccount getAccountInfo(TAccount account) {
-        Invocation.Builder builder = webTarget.path(account.getHref()).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(account.getHref()).request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
 
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());

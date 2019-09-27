@@ -172,7 +172,7 @@ public class TransfersResourceIT extends ITTestBase {
     }
 
     private Response postTransfer(Integer srcAccountId, Integer dstAccountId, Integer amount) {
-        Invocation.Builder builder = webTarget.path(ENDPOINT_TRANSFERS).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(ENDPOINT_TRANSFERS).request(MediaType.APPLICATION_JSON);
         return builder.put(Entity.json(new TTransferData(srcAccountId, dstAccountId, amount)));
     }
 }

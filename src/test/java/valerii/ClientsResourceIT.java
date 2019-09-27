@@ -54,7 +54,7 @@ public class ClientsResourceIT extends ITTestBase {
         Response createResponse = postNewClient(createUniqueName());
         TClient createdClient = createResponse.readEntity(TClient.class);
         // request info by "href" provided by server
-        Invocation.Builder builder = webTarget.path(createdClient.getHref()).request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(createdClient.getHref()).request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
 
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus(), "Wrong response status");
@@ -66,7 +66,7 @@ public class ClientsResourceIT extends ITTestBase {
 
     @Test
     public void clientInfoNotFound() {
-        Invocation.Builder builder = webTarget.path(ENDPOINT_CLIENTS + "/666").request(MediaType.APPLICATION_JSON);
+        Invocation.Builder builder = webTarget.get().path(ENDPOINT_CLIENTS + "/666").request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
 
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus(), "Wrong response status");
