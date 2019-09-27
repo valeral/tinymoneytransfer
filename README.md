@@ -88,7 +88,6 @@ Not required
 
 ## Run functional tests
 ```
-mvn package
 mvn verify -Pfailsafe
 ```
 
