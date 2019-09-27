@@ -86,6 +86,12 @@ All operations are done in parallel allowing multiple requests to the server at 
 ## Installation
 Not required
 
+## Run functional tests
+```
+mvn package
+mvn verify -Pfailsafe
+```
+
 ## Run
 ```
 mvn package
