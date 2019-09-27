@@ -52,6 +52,12 @@ public class ITTestBase {
         return builder.post(Entity.json(new TClient(name)));
     }
 
+    TClient createNewClient(String name) {
+        Response response = postNewClient(name);
+        assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus(), "Wrong response status");
+        return response.readEntity(TClient.class);
+    }
+
     Response postNewAccount(int clientId, String currency) {
         Invocation.Builder builder = webTarget.get().path(ENDPOINT_CLIENTS + "/" + clientId + "/account").request(MediaType.APPLICATION_JSON);
         return builder.post(Entity.json(new TAccount(clientId, currency)));
@@ -67,8 +73,7 @@ public class ITTestBase {
     }
 
     TAccount createAccountForNewClient(String currency) {
-        Response clientResponse = postNewClient(createUniqueName());
-        TClient client = clientResponse.readEntity(TClient.class);
+        TClient client = createNewClient(createUniqueName());
         Response accountResponse = postNewAccount(client.getId(), currency);
         assertEquals(Response.Status.CREATED.getStatusCode(), accountResponse.getStatus());
         return accountResponse.readEntity(TAccount.class);

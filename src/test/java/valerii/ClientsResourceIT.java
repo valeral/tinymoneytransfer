@@ -51,8 +51,7 @@ public class ClientsResourceIT extends ITTestBase {
 
     @Test
     public void clientInfoOK() {
-        Response createResponse = postNewClient(createUniqueName());
-        TClient createdClient = createResponse.readEntity(TClient.class);
+        TClient createdClient = createNewClient(createUniqueName());
         // request info by "href" provided by server
         Invocation.Builder builder = webTarget.get().path(createdClient.getHref()).request(MediaType.APPLICATION_JSON);
         Response response = builder.get();

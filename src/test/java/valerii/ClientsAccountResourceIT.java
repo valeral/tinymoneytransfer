@@ -24,8 +24,7 @@ public class ClientsAccountResourceIT extends ITTestBase {
 
     @Test
     public void createAccountOK() {
-        Response clientResponse = postNewClient(createUniqueName());
-        TClient client = clientResponse.readEntity(TClient.class);
+        TClient client = createNewClient(createUniqueName());
         Response accountResponse = postNewAccount(client.getId(), Currency.RUB.toString());
 
         assertEquals(Response.Status.CREATED.getStatusCode(), accountResponse.getStatus(), "Wrong response status");
@@ -38,8 +37,7 @@ public class ClientsAccountResourceIT extends ITTestBase {
 
     @Test
     public void createAccountWithoutCurrencyReturnError() {
-        Response clientResponse = postNewClient(createUniqueName());
-        TClient client = clientResponse.readEntity(TClient.class);
+        TClient client = createNewClient(createUniqueName());
         Response accountResponse = postNewAccount(client.getId(), null);
 
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), accountResponse.getStatus(), "Wrong response status");
@@ -49,8 +47,7 @@ public class ClientsAccountResourceIT extends ITTestBase {
 
     @Test
     public void createAccountWithWrongCurrencyReturnError() {
-        Response clientResponse = postNewClient(createUniqueName());
-        TClient client = clientResponse.readEntity(TClient.class);
+        TClient client = createNewClient(createUniqueName());
         Response accountResponse = postNewAccount(client.getId(), "BTC");
 
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), accountResponse.getStatus(), "Wrong response status");
