@@ -53,6 +53,7 @@ class ResourceExecutor {
             // get new DB connection and bind it to current thread that executes operation
             try(Connection connection = DbProvider.newDBConnection()) {
                 connection.setAutoCommit(false);
+                connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ); // only used if MVCC=false
                 DbProvider.setThreadConnection(connection);
                 // actual invocation of operation
                 response = method.call();
