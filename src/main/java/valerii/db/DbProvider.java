@@ -28,7 +28,7 @@ public class DbProvider {
      * Returns db connection specific to current thread
      * @return thread specific Connection object
      */
-    private static Connection getConnection() {
+    public static Connection getConnection() {
         return threadConnection.get();
     }
 

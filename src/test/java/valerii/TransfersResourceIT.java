@@ -138,9 +138,9 @@ public class TransfersResourceIT extends ITTestBase {
         TAccount account2 = accounts[1];
 
         ExecutorService service = Executors.newCachedThreadPool();
-        // 30 threads each debited with 1 account1 and transfers 10 from account1 to account2: 30 debited, 300 withdrawn in total
-        // another 30 threads withdraw 2 from account2 and transfer amount 5 from account2 to account1: 60 + 150 withdrawn in total
-        for (int i = 0; i < 30; i++) {
+        // 20 threads each debited with 1 account1 and transfers 10 from account1 to account2: 20 debited, 200 withdrawn in total
+        // another 20 threads withdraw 2 from account2 and transfer amount 5 from account2 to account1: 40 + 100 withdrawn in total
+        for (int i = 0; i < 20; i++) {
             service.execute(() -> postDebitWithdrawAccount(account1, 1));
             service.execute(() -> postDebitWithdrawAccount(account2, -2));
             service.execute(() -> postTransfer(account1.getId(), account2.getId(), 10));
@@ -151,13 +151,13 @@ public class TransfersResourceIT extends ITTestBase {
         service.shutdown();
         service.awaitTermination(5, TimeUnit.SECONDS);
 
-        // checks result amount on account1: 500 + 30 - 300 + 150 = 380
+        // checks result amount on account1: 500 + 20 - 200 + 100 = 420
         TAccount updatedAccount = getAccountInfo(account1);
-        assertEquals(380, updatedAccount.getAmount(), "Wrong amount on account1 after parallel transfer");
+        assertEquals(420, updatedAccount.getAmount(), "Wrong amount on account1 after parallel transfer");
 
-        // checks result amount on account2: 500 - 60 + 300 - 150 = 590
+        // checks result amount on account2: 500 - 40 + 200 - 100 = 640
         updatedAccount = getAccountInfo(account2);
-        assertEquals(590, updatedAccount.getAmount(), "Wrong amount on account2 after parallel transfer");
+        assertEquals(640, updatedAccount.getAmount(), "Wrong amount on account2 after parallel transfer");
     }
 
     private TAccount[] create2AccountsWithAmount(String srcCurrency, Integer srcAmount, String dstCurrency, Integer dstAccount) {

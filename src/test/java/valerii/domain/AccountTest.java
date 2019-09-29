@@ -8,6 +8,7 @@ import valerii.db.*;
 import valerii.exception.BusinessException;
 import valerii.exception.TransferException;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -188,16 +189,14 @@ class AccountTest {
     @SuppressWarnings("unchecked")
     void updateAmountOK() throws SQLException, TransferException {
         Map<String, DbValue> resultSet = createResultSetForAccount(1, 2, 100, Currency.USD);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet, resultSet);
         when(provider.update(any(), eq(Table.ACCOUNT.getTableName()), eq(1), any())).thenReturn(1);
 
         Account account = Account.getById(1);
         assertTrue(account.updateAmount(10));
         assertEquals(110, account.getAmount(), "Wrong amount in updated account");
 
-        verify(provider).select(any(), eq(Table.ACCOUNT.getTableName()), any());
-        verify(provider).selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any());
+        verify(provider, times(2)).select(any(), eq(Table.ACCOUNT.getTableName()), any());
         ArgumentCaptor<Map<String, DbValue>> updateInputDataCaptor = ArgumentCaptor.forClass(Map.class);
         verify(provider).update(any(), eq(Table.ACCOUNT.getTableName()), eq(1), updateInputDataCaptor.capture());
         Map<String, DbValue> updateInputData = updateInputDataCaptor.getValue();
@@ -209,33 +208,31 @@ class AccountTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void updateAmountInsufficientAmountFails() throws SQLException, TransferException {
         Map<String, DbValue> resultSet = createResultSetForAccount(1, 1, 100, Currency.EUR);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet, resultSet);
 
         Account account = Account.getById(1);
         TransferException exception = assertThrows(TransferException.class, () -> account.updateAmount(-200));
         assertEquals(Error.ERR_014.getCode(), exception.getError().getCode());
 
-        verify(provider).select(any(), eq(Table.ACCOUNT.getTableName()), any());
-        verify(provider).selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any());
+        verify(provider, times(2)).select(any(), eq(Table.ACCOUNT.getTableName()), any());
         verifyNoMoreInteractions(provider);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void updateAmountUpdateFailed() throws SQLException, TransferException {
         Map<String, DbValue> resultSet = createResultSetForAccount(2, 1, 50, Currency.RUB);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(resultSet, resultSet);
         when(provider.update(any(), eq(Table.ACCOUNT.getTableName()), eq(2), any())).thenReturn(-1);
 
         Account account = Account.getById(2);
         assertFalse(account.updateAmount(10));
         assertEquals(50, account.getAmount(), "Wrong amount in not updated account");
 
-        verify(provider).select(any(), eq(Table.ACCOUNT.getTableName()), any());
-        verify(provider).selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any());
+        verify(provider, times(2)).select(any(), eq(Table.ACCOUNT.getTableName()), any());
         verify(provider).update(any(), eq(Table.ACCOUNT.getTableName()), eq(2), any());
         verifyNoMoreInteractions(provider);
     }
@@ -244,24 +241,18 @@ class AccountTest {
     @SuppressWarnings("unchecked")
     void transferToExistingAccountOK() throws SQLException, TransferException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
         Map<String, DbValue> dstAccResultSet = createResultSetForAccount(2, 2, 100, Currency.RUB);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, dstAccResultSet);
-        when(provider.update(any(), eq(Table.ACCOUNT.getTableName()), anyInt(), any())).thenReturn(1);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, srcAccResultSet, dstAccResultSet, srcAccResultSet, dstAccResultSet);
+        when(provider.update(any(), eq(Table.ACCOUNT.getTableName()), anyInt(), any())).thenReturn(1, 1);
+        Connection connection = mock(Connection.class);
+        doNothing().when(connection).commit();
+        DbProvider.setThreadConnection(connection);
 
         Account srcAccount = Account.getById(1);
         srcAccount.transferTo(2, 10);
 
         assertEquals(90, srcAccount.getAmount(), "Wrong amount in src account");
-        verify(provider).select(any(), eq(Table.ACCOUNT.getTableName()), any());
-
-        // check src and dst accounts were locked
-        ArgumentCaptor<Map<String, DbValue>> lockInputCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(provider, times(2)).selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), lockInputCaptor.capture());
-        List<Map<String, DbValue>> lockInput = lockInputCaptor.getAllValues();
-        assertEquals(2, lockInput.size(), "Incorrect number of locks");
-        assertEquals(1, lockInput.get(0).get("id").getValue()); //src account lock
-        assertEquals(2, lockInput.get(1).get("id").getValue()); //dst account lock
+        verify(provider, times(5)).select(any(), eq(Table.ACCOUNT.getTableName()), any());
 
         // check src account was updated correctly
         ArgumentCaptor<Map<String, DbValue>> srcUpdateInputCaptor = ArgumentCaptor.forClass(Map.class);
@@ -291,8 +282,7 @@ class AccountTest {
     @SuppressWarnings("unchecked")
     public void transferToNonExistingAccountFails() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, Collections.emptyMap());
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, srcAccResultSet, Collections.emptyMap());
 
         TransferException exception = assertThrows(TransferException.class, () -> Account.getById(1).transferTo(2, 10));
         assertEquals(Error.ERR_019.getCode(), exception.getError().getCode(), "Wrong exception while transfer to non-existing account");
@@ -303,8 +293,7 @@ class AccountTest {
     public void transferWithDifferentCurrenciesFails() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
         Map<String, DbValue> dstAccResultSet = createResultSetForAccount(2, 2, 100, Currency.EUR);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, dstAccResultSet);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, srcAccResultSet, dstAccResultSet);
 
         TransferException exception = assertThrows(TransferException.class, () -> Account.getById(1).transferTo(2, 10));
         assertEquals(Error.ERR_021.getCode(), exception.getError().getCode(), "Wrong exception while transfer to non-existing account");
@@ -314,9 +303,8 @@ class AccountTest {
     @SuppressWarnings("unchecked")
     public void transferWithSrcAccountUpdateError() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
         Map<String, DbValue> dstAccResultSet = createResultSetForAccount(2, 2, 100, Currency.RUB);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, dstAccResultSet);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, srcAccResultSet, dstAccResultSet);
         when(provider.update(any(), eq(Table.ACCOUNT.getTableName()), anyInt(), any())).thenReturn(0);
 
         Account srcAccount = Account.getById(1);
@@ -329,10 +317,12 @@ class AccountTest {
     @SuppressWarnings("unchecked")
     public void transferWithDstAccountUpdateError() throws SQLException {
         Map<String, DbValue> srcAccResultSet = createResultSetForAccount(1, 1, 100, Currency.RUB);
-        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet);
         Map<String, DbValue> dstAccResultSet = createResultSetForAccount(2, 2, 100, Currency.RUB);
-        when(provider.selectForUpdate(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, dstAccResultSet);
+        when(provider.select(any(), eq(Table.ACCOUNT.getTableName()), any())).thenReturn(srcAccResultSet, srcAccResultSet, dstAccResultSet, srcAccResultSet, dstAccResultSet);
         when(provider.update(any(), eq(Table.ACCOUNT.getTableName()), anyInt(), any())).thenReturn(1, 0);
+        Connection connection = mock(Connection.class);
+        doNothing().when(connection).commit();
+        DbProvider.setThreadConnection(connection);
 
         Account srcAccount = Account.getById(1);
         TransferException exception = assertThrows(TransferException.class, () -> srcAccount.transferTo(2, 10));
