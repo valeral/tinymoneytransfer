@@ -232,8 +232,11 @@ public class Account {
         synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(getId(), dstAccountId)) {
             // here we sure that none of the accounts transfers to each other in another thread
             // but we need to be sure that both accounts are not being debited or withdrawn
-            synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(getId(), getId())) {
-                synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(dstAccountId, dstAccountId)) {
+            // lock it in the asc order of the ids to prevent deadlocks
+            int minId = Math.min(getId(), dstAccountId);
+            int maxId = Math.max(getId(), dstAccountId);
+            synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(minId, minId)) {
+                synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(maxId, maxId)) {
                     // after locks are acquired data can differ from the one in current object, so we fetch it again
                     Account srcAccount = Account.getById(getId());
                     Account dstAccount = Account.getById(dstAccountId);
