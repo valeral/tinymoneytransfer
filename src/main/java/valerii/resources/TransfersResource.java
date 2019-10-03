@@ -9,10 +9,7 @@ import valerii.resources.ResourceExecutor.Worker;
 import valerii.resources.transport.TError;
 import valerii.resources.transport.TTransferData;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
@@ -31,7 +28,7 @@ public class TransfersResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransfersResource.class);
 
-    @PUT
+    @POST
     @ManagedAsync
     public void transfer(@Suspended final AsyncResponse asyncResponse, TTransferData transferData) {
         ResourceExecutor.getExecutor().execute(new Worker(asyncResponse, () -> {
@@ -49,6 +46,20 @@ public class TransfersResource {
                 TError error = new TError(Error.ERR_018);
                 LOGGER.error(error.getMsg());
                 return Response.status(Response.Status.NOT_FOUND).entity(error).build();
+            }
+
+            Account dstAccount = Account.getById(transferData.getDstAccountId());
+
+            if (dstAccount == null) {
+                TError error = new TError(Error.ERR_019);
+                LOGGER.error(error.getMsg());
+                return Response.status(Response.Status.NOT_FOUND).entity(error).build();
+            }
+
+            if (srcAccount.getCurrency() != dstAccount.getCurrency()) {
+                TError error = new TError(Error.ERR_021);
+                LOGGER.error(error.getMsg());
+                return Response.status(Response.Status.BAD_REQUEST).entity(error).build();
             }
 
             srcAccount.transferTo(transferData.getDstAccountId(), transferData.getAmount());
@@ -77,6 +88,10 @@ public class TransfersResource {
 
         if (transferData.getAmount() <= 0) {
             return Optional.of(new TError(Error.ERR_022));
+        }
+
+        if (transferData.getSrcAccountId().equals(transferData.getDstAccountId())) {
+            return Optional.of(new TError(Error.ERR_020));
         }
 
         return Optional.empty();

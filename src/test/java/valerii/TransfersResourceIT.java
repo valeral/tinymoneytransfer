@@ -88,7 +88,7 @@ public class TransfersResourceIT extends ITTestBase {
 
         response = postTransfer(srcAccount.getId(), 666, 50);
 
-        assertEquals(422, response.getStatus(), "Wrong response code");
+        assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus(), "Wrong response code");
         error = response.readEntity(TError.class);
         assertEquals(Error.ERR_019.getCode(), error.getCode(), "Wrong error code");
     }
@@ -100,7 +100,7 @@ public class TransfersResourceIT extends ITTestBase {
 
         Response response = postTransfer(srcAccount.getId(), srcAccount.getId(), 50);
 
-        assertEquals(422, response.getStatus(), "Wrong response code");
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus(), "Wrong response code");
         TError error = response.readEntity(TError.class);
         assertEquals(Error.ERR_020.getCode(), error.getCode(), "Wrong error code");
     }
@@ -113,7 +113,7 @@ public class TransfersResourceIT extends ITTestBase {
 
         Response response = postTransfer(srcAccount.getId(), dstAccount.getId(), 50);
 
-        assertEquals(422, response.getStatus(), "Wrong response code");
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus(), "Wrong response code");
         TError error = response.readEntity(TError.class);
         assertEquals(Error.ERR_021.getCode(), error.getCode(), "Wrong error code");
     }
@@ -136,15 +136,20 @@ public class TransfersResourceIT extends ITTestBase {
         TAccount[] accounts = create2AccountsWithAmount(Currency.USD.toString(), 500, Currency.USD.toString(), 500);
         TAccount account1 = accounts[0];
         TAccount account2 = accounts[1];
+        accounts = create2AccountsWithAmount(Currency.USD.toString(), 500, Currency.USD.toString(), 500);
+        TAccount account3 = accounts[0];
+        TAccount account4 = accounts[1];
 
         ExecutorService service = Executors.newCachedThreadPool();
         // 20 threads each debited with 1 account1 and transfers 10 from account1 to account2: 20 debited, 200 withdrawn in total
         // another 20 threads withdraw 2 from account2 and transfer amount 5 from account2 to account1: 40 + 100 withdrawn in total
         for (int i = 0; i < 20; i++) {
-            service.execute(() -> postDebitWithdrawAccount(account1, 1));
-            service.execute(() -> postDebitWithdrawAccount(account2, -2));
+            //service.execute(() -> postDebitWithdrawAccount(account1, 1));
+            //service.execute(() -> postDebitWithdrawAccount(account2, -2));
             service.execute(() -> postTransfer(account1.getId(), account2.getId(), 10));
             service.execute(() -> postTransfer(account2.getId(), account1.getId(), 5));
+            service.execute(() -> postTransfer(account3.getId(), account1.getId(), 1));
+            service.execute(() -> postTransfer(account4.getId(), account2.getId(), 1));
         }
 
         // wait for all threads to complete
@@ -155,9 +160,9 @@ public class TransfersResourceIT extends ITTestBase {
         TAccount updatedAccount = getAccountInfo(account1);
         assertEquals(420, updatedAccount.getAmount(), "Wrong amount on account1 after parallel transfer");
 
-        // checks result amount on account2: 500 - 40 + 200 - 100 = 640
+        // checks result amount on account2: 500 (- 40) +20 + 200 - 100 = 640
         updatedAccount = getAccountInfo(account2);
-        assertEquals(640, updatedAccount.getAmount(), "Wrong amount on account2 after parallel transfer");
+        assertEquals(620, updatedAccount.getAmount(), "Wrong amount on account2 after parallel transfer");
     }
 
     private TAccount[] create2AccountsWithAmount(String srcCurrency, Integer srcAmount, String dstCurrency, Integer dstAccount) {
@@ -173,6 +178,6 @@ public class TransfersResourceIT extends ITTestBase {
 
     private Response postTransfer(Integer srcAccountId, Integer dstAccountId, Integer amount) {
         Invocation.Builder builder = webTarget.get().path(ENDPOINT_TRANSFERS).request(MediaType.APPLICATION_JSON);
-        return builder.put(Entity.json(new TTransferData(srcAccountId, dstAccountId, amount)));
+        return builder.post(Entity.json(new TTransferData(srcAccountId, dstAccountId, amount)));
     }
 }

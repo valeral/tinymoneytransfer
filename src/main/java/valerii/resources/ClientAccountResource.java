@@ -161,7 +161,7 @@ public class ClientAccountResource {
         ));
     }
 
-    @PUT
+    @POST
     @Path("{clientId}/account/{accountId}")
     @ManagedAsync
     public void debitWithdrawAccount(@Suspended final AsyncResponse asyncResponse, @PathParam("clientId") int clientId, @PathParam("accountId") int accountId, TDebitWithdraw debitWithdraw) {

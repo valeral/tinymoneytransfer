@@ -69,7 +69,7 @@ public class ITTestBase {
 
     Response postDebitWithdrawAccount(int clientId, int accountId, Integer amount) {
         Invocation.Builder builder = webTarget.get().path(createURLForClientAccount(clientId, accountId)).request(MediaType.APPLICATION_JSON);
-        return builder.put(Entity.json(new TDebitWithdraw(amount)));
+        return builder.post(Entity.json(new TDebitWithdraw(amount)));
     }
 
     TAccount createAccountForNewClient(String currency) {

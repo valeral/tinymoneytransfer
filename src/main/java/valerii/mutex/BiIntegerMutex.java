@@ -8,7 +8,7 @@ import java.util.WeakHashMap;
  * @author vliutyi
  */
 
-
+@Deprecated
 public class BiIntegerMutex {
 
     private final Map<BiMutex, WeakReference<BiMutex>> mutexMap = new WeakHashMap<>();
@@ -23,17 +23,7 @@ public class BiIntegerMutex {
 
         BiMutex key = new BiMutexImpl(id1, id2);
         synchronized (mutexMap) {
-            WeakReference ref = mutexMap.get(key);
-            if (ref == null) {
-                mutexMap.put(key, new WeakReference<>(key));
-                return key;
-            }
-            BiMutex biMutex = (BiMutex) ref.get();
-            if (biMutex == null) {
-                mutexMap.put(key, new WeakReference<>(key));
-                return key;
-            }
-            return biMutex;
+            return mutexMap.computeIfAbsent(key, k -> new WeakReference<>(key)).get();
         }
     }
 

@@ -10,7 +10,6 @@ import valerii.db.DbValue;
 import valerii.db.Table;
 import valerii.exception.BusinessException;
 import valerii.exception.TransferException;
-import valerii.mutex.BiIntegerMutex;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -26,9 +25,6 @@ import java.util.Map;
 public class Account {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Account.class);
-
-    //private static final Object TRANSFER_LOCK_OBJECT = new Object();
-    private static final BiIntegerMutex BI_INTEGER_MUTEX_HOLDER = new BiIntegerMutex();
 
     private int id;
     private int clientId;
@@ -184,33 +180,40 @@ public class Account {
      * @throws TransferException in case of business logic errors
      */
     public boolean updateAmount(int amountDiff) throws SQLException, TransferException {
-        boolean success;
+        return updateAmount(amountDiff, true);
+    }
+
+    private boolean updateAmount(int amountDiff, boolean needLock) throws SQLException, TransferException {
+        Account account;
         // after lock is acquired data can differ from the one in current object
-        synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(getId(), getId())) {
-            Account account = Account.getById(getId());
-
-            int newAmount = account.getAmount() + amountDiff;
-            if (newAmount < 0) {
-                throw new TransferException(Error.ERR_014);
-            }
-
-            Map<String, DbValue> update = new HashMap<>();
-            update.put("amount", new DbValue(DbFieldType.INTEGER, newAmount));
-
-            int rowsUpdated = DbProvider.update(Table.ACCOUNT.getTableName(), getId(), update);
-
-            success = rowsUpdated == 1;
-            if (success) {
-                account.setAmount(newAmount);
-                //sync amount in current instance with actual quantity
-                setAmount(newAmount);
-                DbProvider.getConnection().commit();
-            } else {
-                LOGGER.error("Error occurred while updating an account " + getId() + ". Updated rows is " + rowsUpdated);
-            }
-
-            return success;
+        if (needLock) {
+            account = lockById(getId());
+        } else {
+            account = this;
         }
+
+        LOGGER.info(LocalDateTime.now() + ": Start updating " + getId() + " from " + account.getAmount());
+
+        int newAmount = account.getAmount() + amountDiff;
+        if (newAmount < 0) {
+            throw new TransferException(Error.ERR_014);
+        }
+
+        Map<String, DbValue> update = new HashMap<>();
+        update.put("amount", new DbValue(DbFieldType.INTEGER, newAmount));
+
+        int rowsUpdated = DbProvider.update(Table.ACCOUNT.getTableName(), getId(), update);
+
+        boolean success = rowsUpdated == 1;
+        if (success) {
+            //sync amount in current instance with actual quantity
+            setAmount(newAmount);
+            LOGGER.info(LocalDateTime.now() + ": " + getId() + " updated by " + amountDiff + " to " + amount);
+        } else {
+            LOGGER.error("Error occurred while updating an account " + getId() + ". Updated rows is " + rowsUpdated);
+        }
+
+        return success;
     }
 
     /**
@@ -222,54 +225,34 @@ public class Account {
      * @throws TransferException in case of business logic errors
      */
     public void transferTo(int dstAccountId, int amount) throws SQLException, TransferException {
-
-        if (getId() == dstAccountId) {
-            LOGGER.error(Error.ERR_020.getMsg());
-            throw new TransferException(Error.ERR_020);
+        // to prevent deadlocks always lock min id first, then max id
+        Account srcAccount;
+        Account dstAccount;
+        if (getId() > dstAccountId) {
+            dstAccount = lockById(dstAccountId);
+            srcAccount = lockById(getId());
+        } else {
+            srcAccount = lockById(getId());
+            dstAccount = lockById(dstAccountId);
         }
 
-        // synchronize on object common to both accounts (regardless of the direction)
-        synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(getId(), dstAccountId)) {
-            // here we sure that none of the accounts transfers to each other in another thread
-            // but we need to be sure that both accounts are not being debited or withdrawn
-            // lock it in the asc order of the ids to prevent deadlocks
-            int minId = Math.min(getId(), dstAccountId);
-            int maxId = Math.max(getId(), dstAccountId);
-            synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(minId, minId)) {
-                synchronized (BI_INTEGER_MUTEX_HOLDER.getMutex(maxId, maxId)) {
-                    // after locks are acquired data can differ from the one in current object, so we fetch it again
-                    Account srcAccount = Account.getById(getId());
-                    Account dstAccount = Account.getById(dstAccountId);
-
-                    if (dstAccount == null) {
-                        LOGGER.error(Error.ERR_019.getMsg());
-                        throw new TransferException(Error.ERR_019);
-                    }
-
-                    if (srcAccount.getCurrency() != dstAccount.getCurrency()) {
-                        LOGGER.error(Error.ERR_021.getMsg());
-                        throw new TransferException(Error.ERR_021);
-                    }
-
-                    // update accounts
-                    if (srcAccount.updateAmount(-amount)) {
-                        if (!dstAccount.updateAmount(amount)) {
-                            // rollback to original amount
-                            // value in DB will be rolled back by aborted transaction
-                            // but to have the DB in consistent state rollback this value manually
-                            srcAccount.updateAmount(amount);
-                            LOGGER.error(Error.ERR_023.getMsg());
-                            throw new TransferException(Error.ERR_023);
-                        }
-                        // sync amount with current instance
-                        setAmount(srcAccount.getAmount());
-                        DbProvider.getConnection().commit();
-                    } else {
-                        LOGGER.error(Error.ERR_024.getMsg());
-                        throw new TransferException(Error.ERR_024);
-                    }
-                }
+        // update accounts
+        if (srcAccount.updateAmount(-amount, false)) {
+            if (!dstAccount.updateAmount(amount, false)) {
+                // rollback to original amount
+                // value in DB will be rolled back by aborted transaction
+                // but to have the DB in consistent state rollback this value manually
+                srcAccount.updateAmount(amount, false);
+                LOGGER.error(Error.ERR_023.getMsg());
+                throw new TransferException(Error.ERR_023);
             }
+            // sync amount with current instance
+            setAmount(srcAccount.getAmount());
+            LOGGER.info("Transferred " + amount + " from " + getId() + " to " + dstAccountId);
+            LOGGER.info(getId() + ": " + srcAccount.getAmount() + ". " + dstAccountId + ": " + dstAccount.getAmount());
+        } else {
+            LOGGER.error(Error.ERR_024.getMsg());
+            throw new TransferException(Error.ERR_024);
         }
     }
 }
