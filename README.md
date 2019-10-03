@@ -113,9 +113,9 @@ Server starts on localhost at port ``8080``. Context root is ``/api``
 * POST - create new client account
 ### /clients/{clientId}/account/{accountId}
 * GET - retrieve client account info
-* PUT - debit/withdraw from account using Debit/Withdraw transport data
+* POST - debit/withdraw from account using Debit/Withdraw transport data
 ### /transfers
-* PUT - transfer money between accounts using Transfer transport data
+* POST - transfer money between accounts using Transfer transport data
 
 ## Usage (sample commands using curl)
 
