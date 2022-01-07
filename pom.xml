@@ -19,7 +19,7 @@
 
         <jetty.version>9.4.19.v20190610</jetty.version>
         <jersey.version>2.29</jersey.version>
-        <h2db.version>1.4.199</h2db.version>
+        <h2db.version>2.0.206</h2db.version>
         <slf4j.version>1.7.28</slf4j.version>
         <junit.version>5.5.0-M1</junit.version>
         <mockito.version>2.15.0</mockito.version>
